@@ -189,9 +189,6 @@ in
   services.xserver.displayManager.sddm.enable = true;
   services.xserver.desktopManager.plasma5.enable = true;
   
-
-  # Enable touchpad support (enabled default in most desktopManager).
-  # services.xserver.libinput.enable = true;
  
   #programs.zsh.enable = true ;
   #开启Root
@@ -202,6 +199,7 @@ in
     packages = with pkgs; [
       sublime4
       vscode
+      kate
     ];
   };
 
