@@ -15,11 +15,34 @@ in
 
 {
   imports =
-    [ # Include the results of the hardware scan.
+    [ 
       ./hardware-configuration.nix
     ];
 
-  
+  nix.settings = {
+    cores = 0 ;
+    auto-optimise-store = true;
+    # 使用镜像源
+    substituters = [
+      "https://mirrors.ustc.edu.cn/nix-channels/store"
+    ]; 
+    trusted-users = [
+       "@wheel"
+       "xsb"
+       "root"
+    ];
+ 
+    # 启用 flake 和 nix commands 实验性功能
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+  };
+ 
+  hardware.enableAllFirmware = true;
+  boot.kernelPackages = pkgs.linuxPackages_latest ;
+  #boot.kernelPackages =  pkgs.linuxKernel.kernels.linux_zen;
+
   #开启pipewire
   sound.enable = true;
   security.rtkit.enable = true;
@@ -28,6 +51,8 @@ in
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
+    wireplumber.enable = true;
+    jack.enable = true ;
   };
   
   #开启Flatpak
@@ -36,8 +61,10 @@ in
   #NVIDIA Prime显卡切换
   hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
   hardware.nvidia.nvidiaSettings = true ;
+  hardware.video.hidpi.enable = true ;
   hardware.nvidia.modesetting.enable = true;
   services.xserver.videoDrivers = [ "nvidia" ];
+  services.xserver.dpi = 96 ;
   hardware.nvidia.prime = {
     sync.enable = true;
     intelBusId = "PCI:0:2:0";
@@ -51,10 +78,11 @@ in
 
   hardware.opengl = {
     enable = true;
-    extraPackages =  [
-      pkgs.vaapiVdpau
-      pkgs.libvdpau-va-gl
-      #pkgs.nvidia-vaapi-driver
+    extraPackages = with pkgs ; [
+      vaapiVdpau
+      libvdpau-va-gl
+      intel-media-driver
+      vaapiIntel
     ];
   };
  
@@ -67,7 +95,6 @@ in
     channel = https://mirrors.tuna.tsinghua.edu.cn/nix-channels/nixos-unstable ;
   };
 
-  #boot.kernelPackages = pkgs.linuxKernel.kernels.linux_zen;
 
   #允许闭源软件
   nixpkgs.config.allowUnfree = true;
@@ -75,15 +102,15 @@ in
   #GRUB
    boot.loader = {
    efi.canTouchEfiVariables = true;
-   grub = {
-     enable = true;
-     device = "nodev";
-     default = "1"; # 从0计数
-     efiSupport = true;
-     gfxmodeEfi = "1920x1080"; # 在 hidpi 高分辨率屏幕显示很小，改成低分辨率直接拉伸放大
-
-     useOSProber = true;
-     };
+    grub = {
+      enable = true;
+      device = "nodev";
+      default = "1"; # 从0计数
+      efiSupport = true;
+      gfxmodeEfi = "1920x1080"; # 在 hidpi 高分辨率屏幕显示很小，改成低分辨率直接拉伸放大
+     
+      useOSProber = true;
+    };
    };
 
   
@@ -99,6 +126,7 @@ in
   };
   
   services.resolved.enable = true;  
+  hardware.bluetooth.enable = true;
   
   #IWD设置
   networking.wireless.iwd.enable = true;
@@ -182,14 +210,20 @@ in
       source-han-serif
       wqy_microhei
       wqy_zenhei
+      roboto-mono
+      cascadia-code
     ];
   };
 
   #桌面环境为KDE
   services.xserver.displayManager.sddm.enable = true;
   services.xserver.desktopManager.plasma5.enable = true;
-  
- 
+  services.colord.enable = true;
+  services.geoclue2.enable = true;
+  programs.kdeconnect.enable = false;
+   
+
+
   #programs.zsh.enable = true ;
   #开启Root
   users.users.xsb = {
@@ -202,11 +236,11 @@ in
       kate
     ];
   };
+  
 
   #软件安装
   # 搜索命令为 nix search
   environment.systemPackages = with pkgs; [
-    vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
     wget
     nano
     curl
@@ -215,6 +249,7 @@ in
     axel
     nushell
     iwd
+    linuxKernel.kernels.linux_zen
     fcitx5-configtool
     fcitx5-rime
     rime-data
@@ -229,9 +264,7 @@ in
     vaapiVdpau
     nvidia-vaapi-driver
     mesa
-    aria
     uget
-    libva-utils
     flatpak
     flatpak-builder
   ];
